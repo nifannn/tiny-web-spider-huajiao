@@ -5,12 +5,25 @@ import re
 import time
 
 def getCategories():
-	pass
+	url = 'http://www.huajiao.com'
+	html = requests.get(url)
+	soup = BeautifulSoup(html.text, 'html.parser')
+	links = soup.find('ul',{'class':'hd-nav'}).find_all('a', href=re.compile('^(/category/)'))
+	return [re.findall('[0-9]+',link['href'])[0] for link in links]
 
 def getPageNumbers(category):
-	pass
+	url = 'http://www.huajiao.com/category/' + str(category)
+	html = requests.get(url)
+	soup = BeautifulSoup(html.text, 'html.parser')
+	texts = soup.find('ul', {'class':'pagination'}).get_text('|',strip=True)
+	return re.findall('[0-9]+',texts)
 
 def filterLiveIds(category, page):
+	url = 'http://www.huajiao.com/category/' + str(category)
+	payload = {'pageno': page}
+	html = requests.get(url, params=payload)
+	soup = BeautifulSoup(html.text, 'html.parser')
+
 	pass
 
 def getUserId(liveId):
