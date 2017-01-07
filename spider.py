@@ -23,10 +23,11 @@ def filterLiveIds(category, page):
 	payload = {'pageno': page}
 	html = requests.get(url, params=payload)
 	soup = BeautifulSoup(html.text, 'html.parser')
-
-	pass
+	tags = soup.find_all('a', href=re.compile('^(/l/)'))
+	return [re.findall('[0-9]+', tag['href'])[0] for tag in tags]
 
 def getUserId(liveId):
+	url = 
 	pass
 
 def getUserRecord(userId):
