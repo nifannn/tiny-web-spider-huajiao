@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 import re
 import time
+import pymysql
 
 def getCategories():
 	url = 'http://www.huajiao.com'
@@ -46,7 +47,10 @@ def getUserRecord(userId):
 		userRecord['level'] = tmp[-1]
 		tmp = userInfoBlock.find_all('p')
 		userRecord['userid'] = re.findall('[0-9]+', tmp[0].string)[0]
-		userRecord['about'] = tmp[1].string
+		if tmp[1].string:
+			userRecord['about'] = tmp[1].string
+		else:
+			userRecord['about'] = ''
 		userRecord['follow'] = tmp[2].string
 		userRecord['follower'] = tmp[3].string
 		userRecord['like'] = tmp[4].string
@@ -57,7 +61,13 @@ def getUserRecord(userId):
 		print('get User Record Error, user Id: ' + str(userId))
 		return 0
 
+def MysqlConn():
+	config = 
+	conn = 
+	pass
+
 def updateUserRecord(userRecord):
+	conn = MysqlConn()
 	pass
 
 def spiderUserRecord():
