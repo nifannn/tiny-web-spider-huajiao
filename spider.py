@@ -36,7 +36,7 @@ def getUserId(liveId):
 def getUserRecord(userId):
 	url = 'http://www.huajiao.com/user/' + str(userId)
 	html = requests.get(url)
-	soup = BeautifulSoup(html, 'html.parser')
+	soup = BeautifulSoup(html.text, 'html.parser')
 	userRecord = dict()
 	try:
 		userInfoBlock = soup.find('div', id='userInfo')
