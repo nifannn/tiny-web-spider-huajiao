@@ -27,11 +27,35 @@ def filterLiveIds(category, page):
 	return [re.findall('[0-9]+', tag['href'])[0] for tag in tags]
 
 def getUserId(liveId):
-	url = 
-	pass
+	url = 'http://www.huajiao.com/l/' + str(liveId)
+	html = requests.get(url)
+	soup = BeautifulSoup(html.text, 'html.parser')
+	link = soup.find('a', href=re.compile('^(/user/)'))['href']
+	return re.findall('[0-9]+', link)[0]
 
 def getUserRecord(userId):
-	pass
+	url = 'http://www.huajiao.com/user/' + str(userId)
+	html = requests.get(url)
+	soup = BeautifulSoup(html, 'html.parser')
+	userRecord = dict()
+	try:
+		userInfoBlock = soup.find('div', id='userInfo')
+		userRecord['avatar'] = userInfoBlock.find('div', class_='avatar').contents[0]['src']
+		tmp = userInfoBlock.h3.get_text('|', strip=True).split('|')
+		userRecord['username'] = ''.join(tmp[0:-1])
+		userRecord['level'] = tmp[-1]
+		tmp = userInfoBlock.find_all('p')
+		userRecord['userid'] = re.findall('[0-9]+', tmp[0].string)[0]
+		userRecord['about'] = tmp[1].string
+		userRecord['follow'] = tmp[2].string
+		userRecord['follower'] = tmp[3].string
+		userRecord['like'] = tmp[4].string
+		userRecord['experience'] = tmp[5].string
+		return userRecord
+
+	except:
+		print('get User Record Error, user Id: ' + str(userId))
+		return 0
 
 def updateUserRecord(userRecord):
 	pass
