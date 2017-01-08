@@ -127,7 +127,10 @@ def getLiveRecords(userId):
 	payload = {'uid': userId}
 	html = requests.get(url, params=payload)
 	try:
-		return html.json()['data']['feeds']
+		if html.json()['data']:
+			return html.json()['data']['feeds']
+		else:
+			return 0
 	except:
 		print('get json data error, user id: ' + str(userId))
 		return 0
@@ -194,7 +197,7 @@ def main(argv):
 	elif argv[1] == 'spiderLiveRecord':
 		starttime = time.time()
 		spiderLiveRecord()
-		enttime = time.time()
+		endtime = time.time()
 		duration = time.strftime('%H:%M:%S', time.gmtime(endtime - starttime))
 		print('Run time: ' + duration)
 		print(getLiveTblInfo())
