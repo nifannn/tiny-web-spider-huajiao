@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import re
 import time
 import pymysql
+import datetime
 
 def getCategories():
 	url = 'http://www.huajiao.com'
@@ -32,7 +33,11 @@ def getUserId(liveId):
 	html = requests.get(url)
 	soup = BeautifulSoup(html.text, 'html.parser')
 	link = soup.find('a', href=re.compile('^(/user/)'))['href']
-	return re.findall('[0-9]+', link)[0]
+	try:
+		return re.findall('[0-9]+', link)[0]
+	except:
+		print('get user id error, live id: ' + str(liveId))
+		return 0
 
 def getUserRecord(userId):
 	url = 'http://www.huajiao.com/user/' + str(userId)
@@ -53,7 +58,7 @@ def getUserRecord(userId):
 			userRecord['about'] = ''
 		userRecord['follow'] = tmp[2].string
 		userRecord['follower'] = tmp[3].string
-		userRecord['like'] = tmp[4].string
+		userRecord['praise'] = tmp[4].string
 		userRecord['experience'] = tmp[5].string
 		return userRecord
 
@@ -61,38 +66,72 @@ def getUserRecord(userId):
 		print('get User Record Error, user Id: ' + str(userId))
 		return 0
 
+# connect to mysql server
 def MysqlConn():
-	config = 
-	conn = 
-	pass
+	config = {'host':'127.0.0.1', 
+	          'user':'root', 
+	          'password':'sqlkg1421', 
+	          'db':'ZhiBo',
+	          'charset':'utf8mb4',
+	          'cursorclass':pymysql.cursors.DictCursor}
+	conn = pymysql.connect(**config)
+	return conn
 
+# get current local time
 def getNowTime():
-	pass
+	return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
 
 def updateUserRecord(userRecord):
 	conn = MysqlConn()
-	pass
+	try:
+		with conn.cursor() as cursor:
+			colname = '(UserId, UserName, Level, About, Follow, Follower, Praise, Experience, Avatar, UpdateTime)'
+			sql = 'replace into Huajiao_User ' + colname + ' values (' + '%s,' * 9 + '%s)'
+			value = (userRecord['userid'],userRecord['username'],userRecord['level'],
+				     userRecord['about'],userRecord['follow'],userRecord['follower'],
+				     userRecord['praise'],userRecord['experience'],userRecord['avatar'],
+				     getNowTime())
+			cursor.execute(sql, value)
+		
+		conn.commit()
+	except:
+		print('update user record error, user id: ' + str(userRecord['userid']))
+	finally:
+		conn.close()
 
 def spiderUserRecord():
 	for category in getCategories():
 		for page in getPageNumbers(category):
-			for livdId in filterLiveIds(category, page):
+			for liveId in filterLiveIds(category, page):
 				userId = getUserId(liveId)
 				userRecord = getUserRecord(userId)
 				if userRecord:
 					updateUserRecord(userRecord)
 
+			time.sleep(2)
+		time.sleep(10)
+
 def spiderLiveRecord():
 	pass
 
-def getLiveInfo():
+def getLiveTblInfo():
 	pass
 
-def getUserInfo():
-	pass
+def getUserTblInfo():
+	conn = MysqlConn()
+	with conn.cursor() as cursor:
+		sql = 'select count(UserId), max(UpdateTime) from Huajiao_User'
+		cursor.execute(sql)
+		result = cursor.fetchone()
+
+	conn.close()
+	count = result['count(UserId)']
+	latestupdatetime = result['max(UpdateTime)'].strftime('%Y-%m-%d %H:%M:%S')
+	tblinfo = 'Number of User Records: ' + str(count) + ' \n' + 'Latest Update Time: ' + latestupdatetime
+	return tblinfo
 
 def main(argv):
-	usage = 'Usage: python spider.py [Usage|spiderUserRecord|spiderLiveRecord|getLiveInfo|getUserInfo]'
+	usage = 'Usage: python spider.py [Usage|spiderUserRecord|spiderLiveRecord|getLiveTblInfo|getUserTblInfo]'
 	if len(argv) < 2 or argv[1] == 'Usage':
 		print(usage)
 		exit()
@@ -101,19 +140,19 @@ def main(argv):
 		spiderLiveRecord()
 		enttime = time.time()
 		duration = time.strftime('%H:%M:%S', time.gmtime(endtime - starttime))
-		print('This operation lasts ' + duration + '.')
-		print(getLiveInfo())
+		print('Run time: ' + duration)
+		print(getLiveTblInfo())
 	elif argv[1] == 'spiderUserRecord':
 		starttime = time.time()
 		spiderUserRecord()
 		endtime = time.time()
 		duration = time.strftime('%H:%M:%S', time.gmtime(endtime - starttime))
-		print('This operation lasts ' + duration + '.')
-		print(getUserInfo())
-	elif argv[1] == 'getLiveInfo':
-	    print(getLiveInfo())
-	elif argv[1] == 'getUserInfo':
-		print(getUserInfo())
+		print('Run time: ' + duration)
+		print(getUserTblInfo())
+	elif argv[1] == 'getLiveTblInfo':
+	    print(getLiveTblInfo())
+	elif argv[1] == 'getUserTblInfo':
+		print(getUserTblInfo())
 	else:
 	    print(usage)
 	    exit()
