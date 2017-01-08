@@ -36,7 +36,7 @@ def getUserId(liveId):
 	try:
 		return re.findall('[0-9]+', link)[0]
 	except:
-		print('直播间突然消失了, live id: ' + str(liveId))
+		print('live room disappeared, live id: ' + str(liveId))
 		return 0
 
 def getUserRecord(userId):
@@ -113,10 +113,24 @@ def spiderUserRecord():
 		time.sleep(10)
 
 def getUserIdfromDB():
-	pass
+	conn = MysqlConn()
+	with conn.cursor() as cursor:
+		sql = 'select UserId from Huajiao_User'
+		cursor.execute(sql)
+		results = cursor.fetchall()
+
+	conn.close()
+	return [result['UserId'] for result in results]
 
 def getLiveRecords(userId):
-	pass
+	url = 'http://webh.huajiao.com/User/getUserFeeds'
+	payload = {'uid': userId}
+	html = requests.get(url, params=payload)
+	try:
+		return html.json()['data']['feeds']
+	except:
+		print('get json data error, user id: ' + str(userId))
+		return 0
 
 def updateLiveRecord(record):
 	pass
@@ -127,7 +141,6 @@ def spiderLiveRecord():
 		if liverecords:
 			for liverecord in liverecords:
 				updateLiveRecord(liverecord)
-	pass
 
 def getLiveTblInfo():
 	conn = MysqlConn()
