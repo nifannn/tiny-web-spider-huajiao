@@ -112,11 +112,35 @@ def spiderUserRecord():
 			time.sleep(2)
 		time.sleep(10)
 
+def getUserIdfromDB():
+	pass
+
+def getLiveRecords(userId):
+	pass
+
+def updateLiveRecord(record):
+	pass
+
 def spiderLiveRecord():
+	for userId in getUserIdfromDB():
+		liverecords = getLiveRecords(userId)
+		if liverecords:
+			for liverecord in liverecords:
+				updateLiveRecord(liverecord)
 	pass
 
 def getLiveTblInfo():
-	pass
+	conn = MysqlConn()
+	with conn.cursor() as cursor:
+		sql = 'select count(LiveId), max(UpdateTime) from Huajiao_Live'
+		cursor.execute(sql)
+		result = cursor.fetchone()
+
+	conn.close()
+	count = result['count(LiveId)']
+	latestupdatetime = result['max(UpdateTime)'].strftime('%Y-%m-%d %H:%M:%S')
+	tblinfo = 'Number of Live Records: ' + str(count) + ' \n' + 'Latest Update Time: ' + latestupdatetime
+	return tblinfo
 
 def getUserTblInfo():
 	conn = MysqlConn()
