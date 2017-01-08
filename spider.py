@@ -133,14 +133,32 @@ def getLiveRecords(userId):
 		return 0
 
 def updateLiveRecord(record):
-	pass
+	colname = '(LiveId, UserId, UserName, PublishTime, Duration, Location, Title, Watches, Praises, UpdateTime)'
+	sql = 'replace into Huajiao_Live ' + colname + ' values (' + '%s, ' * 9 + '%s) '
+	value = (record['feed']['relateid'], record['author']['uid'], record['author']['nickname'],
+		     record['feed']['publishtime'], record['feed']['duration'] if 'duration' in record['feed'].keys() else 0, 
+		     record['feed']['location'], record['feed']['title'], record['feed']['watches'], 
+		     record['feed']['praises'], getNowTime())
+
+	conn = MysqlConn()
+	try:
+		with conn.cursor() as cursor:
+			cursor.execute(sql, value)
+
+		conn.commit()
+	except:
+		print('update live record error, user id: ' + str(record['author']['uid']) + ' live id: ' + str(record['feed']['relateid']))
+	finally:
+		conn.close()
 
 def spiderLiveRecord():
 	for userId in getUserIdfromDB():
 		liverecords = getLiveRecords(userId)
 		if liverecords:
-			for liverecord in liverecords:
+			for liverecord in liverecords[::-1]:
 				updateLiveRecord(liverecord)
+
+		time.sleep(0.1)
 
 def getLiveTblInfo():
 	conn = MysqlConn()
