@@ -6,6 +6,7 @@ import time
 import pymysql
 import datetime
 
+# get categories from index
 def getCategories():
 	url = 'http://www.huajiao.com'
 	html = requests.get(url)
@@ -13,6 +14,7 @@ def getCategories():
 	links = soup.find('ul',{'class':'hd-nav'}).find_all('a', href=re.compile('^(/category/)'))
 	return [re.findall('[0-9]+',link['href'])[0] for link in links]
 
+# get page numbers from category
 def getPageNumbers(category):
 	url = 'http://www.huajiao.com/category/' + str(category)
 	html = requests.get(url)
@@ -20,6 +22,7 @@ def getPageNumbers(category):
 	texts = soup.find('ul', {'class':'pagination'}).get_text('|',strip=True)
 	return re.findall('[0-9]+',texts)
 
+# get live ids with category and page number
 def filterLiveIds(category, page):
 	url = 'http://www.huajiao.com/category/' + str(category)
 	payload = {'pageno': page}
@@ -28,6 +31,7 @@ def filterLiveIds(category, page):
 	tags = soup.find_all('a', href=re.compile('^(/l/)'))
 	return [re.findall('[0-9]+', tag['href'])[0] for tag in tags]
 
+# get user id from live id
 def getUserId(liveId):
 	url = 'http://www.huajiao.com/l/' + str(liveId)
 	html = requests.get(url)
@@ -39,6 +43,7 @@ def getUserId(liveId):
 		print('live room disappeared, live id: ' + str(liveId))
 		return 0
 
+# get user data from user id
 def getUserRecord(userId):
 	url = 'http://www.huajiao.com/user/' + str(userId)
 	html = requests.get(url)
@@ -81,6 +86,7 @@ def MysqlConn():
 def getNowTime():
 	return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
 
+# update user data
 def updateUserRecord(userRecord):
 	conn = MysqlConn()
 	try:
@@ -99,6 +105,7 @@ def updateUserRecord(userRecord):
 	finally:
 		conn.close()
 
+# scrape user records frame
 def spiderUserRecord():
 	for category in getCategories():
 		for page in getPageNumbers(category):
@@ -112,6 +119,7 @@ def spiderUserRecord():
 			time.sleep(2)
 		time.sleep(10)
 
+# get user ids from mysql
 def getUserIdfromDB():
 	conn = MysqlConn()
 	with conn.cursor() as cursor:
@@ -122,6 +130,7 @@ def getUserIdfromDB():
 	conn.close()
 	return [result['UserId'] for result in results]
 
+# get live data from user id
 def getLiveRecords(userId):
 	url = 'http://webh.huajiao.com/User/getUserFeeds'
 	payload = {'uid': userId}
@@ -135,6 +144,7 @@ def getLiveRecords(userId):
 		print('get json data error, user id: ' + str(userId))
 		return 0
 
+# update live data
 def updateLiveRecord(record):
 	colname = '(LiveId, UserId, UserName, PublishTime, Duration, Location, Title, Watches, Praises, UpdateTime)'
 	sql = 'replace into Huajiao_Live ' + colname + ' values (' + '%s, ' * 9 + '%s) '
@@ -154,6 +164,7 @@ def updateLiveRecord(record):
 	finally:
 		conn.close()
 
+# scrape live records frame
 def spiderLiveRecord():
 	for userId in getUserIdfromDB():
 		liverecords = getLiveRecords(userId)
@@ -163,6 +174,7 @@ def spiderLiveRecord():
 
 		time.sleep(0.1)
 
+# get live table info from mysql
 def getLiveTblInfo():
 	conn = MysqlConn()
 	with conn.cursor() as cursor:
@@ -176,6 +188,7 @@ def getLiveTblInfo():
 	tblinfo = 'Number of Live Records: ' + str(count) + ' \n' + 'Latest Update Time: ' + latestupdatetime
 	return tblinfo
 
+# get user table info from mysql
 def getUserTblInfo():
 	conn = MysqlConn()
 	with conn.cursor() as cursor:
