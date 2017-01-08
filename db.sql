@@ -16,3 +16,16 @@ create table if not exists `Huajiao_User`(
         primary key(`UserId`) 
 ) Engine=InnoDB default charset=utf8mb4 collate=utf8mb4_general_ci;
 
+create table if not exists `Huajiao_Live`(
+         `LiveId` int unsigned not null,
+         `UserId` int unsigned not null,
+         `UserName` varchar(255) not null default '' comment '昵称',
+         `PublishTime` timestamp not null default current_timestamp comment '创建时间',
+         `Duration` int unsigned not null default 0 comment '时长',
+         `Location` varchar(200) not null default '' comment '地点',
+         `Title` varchar(300) not null default '' comment '标题',
+         `Watches` int unsigned not null default 0 comment '观看人数',
+         `Praises` int unsigned not null default 0 comment '收获赞数',
+         `UpdateTime` timestamp not null default current_timestamp comment '更新时间',
+         primary key(`LiveId`)
+) Engine=InnoDB default charset=utf8mb4 collate=utf8mb4_general_ci;
