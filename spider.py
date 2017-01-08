@@ -36,7 +36,7 @@ def getUserId(liveId):
 	try:
 		return re.findall('[0-9]+', link)[0]
 	except:
-		print('get user id error, live id: ' + str(liveId))
+		print('直播间突然消失了, live id: ' + str(liveId))
 		return 0
 
 def getUserRecord(userId):
@@ -104,9 +104,10 @@ def spiderUserRecord():
 		for page in getPageNumbers(category):
 			for liveId in filterLiveIds(category, page):
 				userId = getUserId(liveId)
-				userRecord = getUserRecord(userId)
-				if userRecord:
-					updateUserRecord(userRecord)
+				if userId:
+					userRecord = getUserRecord(userId)
+					if userRecord:
+						updateUserRecord(userRecord)
 
 			time.sleep(2)
 		time.sleep(10)
