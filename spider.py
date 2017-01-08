@@ -66,6 +66,9 @@ def MysqlConn():
 	conn = 
 	pass
 
+def getNowTime():
+	pass
+
 def updateUserRecord(userRecord):
 	conn = MysqlConn()
 	pass
