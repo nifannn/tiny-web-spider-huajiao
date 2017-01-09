@@ -77,7 +77,7 @@ def getMysqlPass():
 	status = {'times':0, 'conn':0}
 	while status['conn'] != 1 and status['times'] <= 5:
 		logininfo = {'host':'', 'user': '', 'db':''}
-		for key in logininfo.keys():
+		for key in ['host', 'db', 'user']:
 			logininfo[key] = input('Mysql ' + key + ': ')
 		logininfo['password'] = getpass.getpass('Mysql password: ')
 		try:
