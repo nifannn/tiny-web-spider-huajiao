@@ -5,6 +5,7 @@ import re
 import time
 import pymysql
 import datetime
+import getpass
 
 # get categories from index
 def getCategories():
@@ -71,14 +72,34 @@ def getUserRecord(userId):
 		print('get User Record Error, user Id: ' + str(userId))
 		return 0
 
+# input login info
+def getMysqlPass():
+	logininfo = {'host':'', 'user': '', 'db':''}
+	status = {'times':0, 'conn':0}
+	while status['conn'] != 1 and status['times'] <= 5:
+		for key in logininfo.keys():
+			logininfo[key] = input('Mysql ' + key + ': ')
+		logininfo['password'] = getpass.getpass('Mysql password: ')
+		try:
+			MysqlConn(logininfo)
+			status['conn'] = 1
+		except:
+			status['conn'] = 0
+			print('connection failure')
+		status['times'] = status['times'] + 1
+
+	if status['conn'] == 1:
+		print('connection success')
+		return logininfo
+	else:
+		print('too many failures, bye')
+		exit()
+
 # connect to mysql server
-def MysqlConn():
-	config = {'host':'127.0.0.1', 
-	          'user':'root', 
-	          'password':'passwd', 
-	          'db':'ZhiBo',
-	          'charset':'utf8mb4',
+def MysqlConn(logininfo):
+	config = {'charset':'utf8mb4',
 	          'cursorclass':pymysql.cursors.DictCursor}
+	config.update(logininfo)
 	conn = pymysql.connect(**config)
 	return conn
 
@@ -87,8 +108,8 @@ def getNowTime():
 	return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
 
 # update user data
-def updateUserRecord(userRecord):
-	conn = MysqlConn()
+def updateUserRecord(userRecord, logininfo):
+	conn = MysqlConn(logininfo)
 	try:
 		with conn.cursor() as cursor:
 			colname = '(UserId, UserName, Level, About, Follow, Follower, Praise, Experience, Avatar, UpdateTime)'
@@ -107,6 +128,7 @@ def updateUserRecord(userRecord):
 
 # scrape user records frame
 def spiderUserRecord():
+	logininfo = getMysqlPass()
 	for category in getCategories():
 		for page in getPageNumbers(category):
 			for liveId in filterLiveIds(category, page):
@@ -114,14 +136,15 @@ def spiderUserRecord():
 				if userId:
 					userRecord = getUserRecord(userId)
 					if userRecord:
-						updateUserRecord(userRecord)
+						updateUserRecord(userRecord, logininfo)
 
 			time.sleep(2)
 		time.sleep(10)
+	return logininfo
 
 # get user ids from mysql
-def getUserIdfromDB():
-	conn = MysqlConn()
+def getUserIdfromDB(logininfo):
+	conn = MysqlConn(logininfo)
 	with conn.cursor() as cursor:
 		sql = 'select UserId from Huajiao_User'
 		cursor.execute(sql)
@@ -145,7 +168,7 @@ def getLiveRecords(userId):
 		return 0
 
 # update live data
-def updateLiveRecord(record):
+def updateLiveRecord(record, logininfo):
 	colname = '(LiveId, UserId, UserName, PublishTime, Duration, Location, Title, Watches, Praises, UpdateTime)'
 	sql = 'replace into Huajiao_Live ' + colname + ' values (' + '%s, ' * 9 + '%s) '
 	value = (record['feed']['relateid'], record['author']['uid'], record['author']['nickname'],
@@ -153,7 +176,7 @@ def updateLiveRecord(record):
 		     record['feed']['location'], record['feed']['title'], record['feed']['watches'], 
 		     record['feed']['praises'], getNowTime())
 
-	conn = MysqlConn()
+	conn = MysqlConn(logininfo)
 	try:
 		with conn.cursor() as cursor:
 			cursor.execute(sql, value)
@@ -166,17 +189,19 @@ def updateLiveRecord(record):
 
 # scrape live records frame
 def spiderLiveRecord():
-	for userId in getUserIdfromDB():
+	logininfo = getMysqlPass()
+	for userId in getUserIdfromDB(logininfo):
 		liverecords = getLiveRecords(userId)
 		if liverecords:
 			for liverecord in liverecords[::-1]:
-				updateLiveRecord(liverecord)
+				updateLiveRecord(liverecord, logininfo)
 
 		time.sleep(0.1)
+	return logininfo
 
 # get live table info from mysql
-def getLiveTblInfo():
-	conn = MysqlConn()
+def getLiveTblInfo(logininfo):
+	conn = MysqlConn(logininfo)
 	with conn.cursor() as cursor:
 		sql = 'select count(LiveId), max(UpdateTime) from Huajiao_Live'
 		cursor.execute(sql)
@@ -189,8 +214,8 @@ def getLiveTblInfo():
 	return tblinfo
 
 # get user table info from mysql
-def getUserTblInfo():
-	conn = MysqlConn()
+def getUserTblInfo(logininfo):
+	conn = MysqlConn(logininfo)
 	with conn.cursor() as cursor:
 		sql = 'select count(UserId), max(UpdateTime) from Huajiao_User'
 		cursor.execute(sql)
@@ -209,22 +234,22 @@ def main(argv):
 		exit()
 	elif argv[1] == 'spiderLiveRecord':
 		starttime = time.time()
-		spiderLiveRecord()
+		logininfo = spiderLiveRecord()
 		endtime = time.time()
 		duration = time.strftime('%H:%M:%S', time.gmtime(endtime - starttime))
 		print('Run time: ' + duration)
-		print(getLiveTblInfo())
+		print(getLiveTblInfo(logininfo))
 	elif argv[1] == 'spiderUserRecord':
 		starttime = time.time()
-		spiderUserRecord()
+		logininfo = spiderUserRecord()
 		endtime = time.time()
 		duration = time.strftime('%H:%M:%S', time.gmtime(endtime - starttime))
 		print('Run time: ' + duration)
-		print(getUserTblInfo())
+		print(getUserTblInfo(logininfo))
 	elif argv[1] == 'getLiveTblInfo':
-	    print(getLiveTblInfo())
+	    print(getLiveTblInfo(getMysqlPass()))
 	elif argv[1] == 'getUserTblInfo':
-		print(getUserTblInfo())
+		print(getUserTblInfo(getMysqlPass()))
 	else:
 	    print(usage)
 	    exit()
