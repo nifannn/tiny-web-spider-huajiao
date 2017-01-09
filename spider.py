@@ -75,7 +75,7 @@ def getUserRecord(userId):
 def MysqlConn():
 	config = {'host':'127.0.0.1', 
 	          'user':'root', 
-	          'password':'sqlkg1421', 
+	          'password':'passwd', 
 	          'db':'ZhiBo',
 	          'charset':'utf8mb4',
 	          'cursorclass':pymysql.cursors.DictCursor}
