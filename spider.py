@@ -74,9 +74,9 @@ def getUserRecord(userId):
 
 # input login info
 def getMysqlPass():
-	logininfo = {'host':'', 'user': '', 'db':''}
 	status = {'times':0, 'conn':0}
 	while status['conn'] != 1 and status['times'] <= 5:
+		logininfo = {'host':'', 'user': '', 'db':''}
 		for key in logininfo.keys():
 			logininfo[key] = input('Mysql ' + key + ': ')
 		logininfo['password'] = getpass.getpass('Mysql password: ')
