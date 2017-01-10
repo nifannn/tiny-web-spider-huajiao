@@ -6,7 +6,7 @@ class ProgressBar(object):
 	def __init__(self, total = 100, current = 0):
 		self.total = total
 		self.current = current
-		self.percentage = self.current * 100 // self.total
+		self.percentage = int(self.current * 100 // self.total)
 		self.length = self.percentage // 2
 		self.content = 'Progress:  [' + '#' * self.length + '.' * (50 - self.length) + ']  ' + str(self.percentage) + '%' +'\r'
 
@@ -23,27 +23,27 @@ class ProgressBar(object):
 	def modify(self, newcurrent, newtotal):
 		self.total = newtotal
 		self.current = newcurrent
-		self.percentage = self.current * 100 // self.total
+		self.percentage = int(self.current * 100 // self.total)
 		self.length = self.percentage // 2
 		self.content = 'Progress:  [' + '#' * self.length + '.' * (50 - self.length) + ']  ' + str(self.percentage) + '%' + '\r'
 
 	def update(self, newcurrent):
 		self.current = newcurrent
-		self.percentage = self.current * 100 // self.total
+		self.percentage = int(self.current * 100 // self.total)
 		self.length = self.percentage // 2
 		self.content = 'Progress:  [' + '#' * self.length + '.' * (50 - self.length) + ']  ' + str(self.percentage) + '%' + '\r'
 		self.show()
 
 	def increase(self, increment = 1):
 		self.current = self.current + increment
-		self.percentage = self.current * 100 // self.total
+		self.percentage = int(self.current * 100 // self.total)
 		self.length = self.percentage // 2
 		self.content = 'Progress:  [' + '#' * self.length + '.' * (50 - self.length) + ']  ' + str(self.percentage) + '%' + '\r'
 		self.show()
 
 	def restart(self):
 		self.current = 0
-		self.percentage = self.current * 100 // self.total
+		self.percentage = int(self.current * 100 // self.total)
 		self.length = self.percentage // 2
 		self.content = 'Progress:  [' + '#' * self.length + '.' * (50 - self.length) + ']  ' + str(self.percentage) + '%' + '\r'
 

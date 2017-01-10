@@ -6,6 +6,7 @@ import time
 import pymysql
 import datetime
 import getpass
+import progressbar
 
 # get categories from index
 def getCategories():
@@ -33,7 +34,7 @@ def filterLiveIds(category, page):
 	return [re.findall('[0-9]+', tag['href'])[0] for tag in tags]
 
 # get user id from live id
-def getUserId(liveId):
+def getUserId(liveId, logs):
 	url = 'http://www.huajiao.com/l/' + str(liveId)
 	html = requests.get(url)
 	soup = BeautifulSoup(html.text, 'html.parser')
@@ -41,11 +42,11 @@ def getUserId(liveId):
 	try:
 		return re.findall('[0-9]+', link)[0]
 	except:
-		print('live room disappeared, live id: ' + str(liveId))
+		logs.append(getNowTime() + ' live room disappeared, live id: ' + str(liveId))
 		return 0
 
 # get user data from user id
-def getUserRecord(userId):
+def getUserRecord(userId, logs):
 	url = 'http://www.huajiao.com/user/' + str(userId)
 	html = requests.get(url)
 	soup = BeautifulSoup(html.text, 'html.parser')
@@ -69,7 +70,7 @@ def getUserRecord(userId):
 		return userRecord
 
 	except:
-		print('get User Record Error, user Id: ' + str(userId))
+		logs.append(getNowTime() + ' get User Record Error, user Id: ' + str(userId))
 		return 0
 
 # input login info
@@ -108,7 +109,7 @@ def getNowTime():
 	return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
 
 # update user data
-def updateUserRecord(userRecord, logininfo):
+def updateUserRecord(userRecord, logininfo, logs):
 	conn = MysqlConn(logininfo)
 	try:
 		with conn.cursor() as cursor:
@@ -122,24 +123,36 @@ def updateUserRecord(userRecord, logininfo):
 		
 		conn.commit()
 	except:
-		print('update user record error, user id: ' + str(userRecord['userid']))
+		logs.append(getNowTime() + ' update user record error, user id: ' + str(userRecord['userid']))
 	finally:
 		conn.close()
 
 # scrape user records frame
 def spiderUserRecord():
 	logininfo = getMysqlPass()
-	for category in getCategories():
-		for page in getPageNumbers(category):
+	categories = getCategories()
+	bar = progressbar.ProgressBar(total = len(categories))
+	bar.show()
+	logs = []
+	
+	for cnt, category in enumerate(categories):
+		pages = getPageNumbers(category)
+		for page in pages:
 			for liveId in filterLiveIds(category, page):
-				userId = getUserId(liveId)
+				userId = getUserId(liveId, logs)
 				if userId:
-					userRecord = getUserRecord(userId)
+					userRecord = getUserRecord(userId, logs)
 					if userRecord:
-						updateUserRecord(userRecord, logininfo)
+						updateUserRecord(userRecord, logininfo, logs)
 
-			time.sleep(2)
-		time.sleep(10)
+			bar.increase(1 / len(pages))
+			time.sleep(0.2)	
+		bar.update(cnt + 1)
+		time.sleep(1)
+	bar.present()
+
+	for log in logs:
+		print(log)
 	return logininfo
 
 # get user ids from mysql
