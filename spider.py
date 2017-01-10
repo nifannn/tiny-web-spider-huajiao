@@ -167,7 +167,7 @@ def getUserIdfromDB(logininfo):
 	return [result['UserId'] for result in results]
 
 # get live data from user id
-def getLiveRecords(userId):
+def getLiveRecords(userId, logs):
 	url = 'http://webh.huajiao.com/User/getUserFeeds'
 	payload = {'uid': userId}
 	html = requests.get(url, params=payload)
@@ -177,11 +177,11 @@ def getLiveRecords(userId):
 		else:
 			return 0
 	except:
-		print('get json data error, user id: ' + str(userId))
+		logs.append(getNowTime() + ' get json data error, user id: ' + str(userId))
 		return 0
 
 # update live data
-def updateLiveRecord(record, logininfo):
+def updateLiveRecord(record, logininfo, logs):
 	colname = '(LiveId, UserId, UserName, PublishTime, Duration, Location, Title, Watches, Praises, UpdateTime)'
 	sql = 'replace into Huajiao_Live ' + colname + ' values (' + '%s, ' * 9 + '%s) '
 	value = (record['feed']['relateid'], record['author']['uid'], record['author']['nickname'],
@@ -196,20 +196,30 @@ def updateLiveRecord(record, logininfo):
 
 		conn.commit()
 	except:
-		print('update live record error, user id: ' + str(record['author']['uid']) + ' live id: ' + str(record['feed']['relateid']))
+		logs.append(getNowTime() + ' update live record error, user id: ' + str(record['author']['uid']) + ' live id: ' + str(record['feed']['relateid']))
 	finally:
 		conn.close()
 
 # scrape live records frame
 def spiderLiveRecord():
 	logininfo = getMysqlPass()
-	for userId in getUserIdfromDB(logininfo):
-		liverecords = getLiveRecords(userId)
+	userIds = getUserIdfromDB(logininfo)
+	bar = progressbar.ProgressBar(total = len(userIds))
+	bar.show()
+	logs = []
+
+	for userId in userIds:
+		liverecords = getLiveRecords(userId, logs)
 		if liverecords:
 			for liverecord in liverecords[::-1]:
-				updateLiveRecord(liverecord, logininfo)
+				updateLiveRecord(liverecord, logininfo, logs)
 
+		bar.increase()
 		time.sleep(0.1)
+	bar.present()
+
+	for log in logs:
+		print(log)
 	return logininfo
 
 # get live table info from mysql
