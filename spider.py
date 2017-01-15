@@ -21,25 +21,32 @@ def getPageNumbers(category):
 	url = 'http://www.huajiao.com/category/' + str(category)
 	html = requests.get(url)
 	soup = BeautifulSoup(html.text, 'html.parser')
-	texts = soup.find('ul', {'class':'pagination'}).get_text('|',strip=True)
-	return re.findall('[0-9]+',texts)
+	try:
+		texts = soup.find('ul', {'class':'pagination'}).get_text('|',strip=True)
+		return re.findall('[0-9]+',texts)
+	except:
+		return [1]
 
 # get live ids with category and page number
-def filterLiveIds(category, page):
+def filterLiveIds(category, page, logs):
 	url = 'http://www.huajiao.com/category/' + str(category)
 	payload = {'pageno': page}
 	html = requests.get(url, params=payload)
 	soup = BeautifulSoup(html.text, 'html.parser')
 	tags = soup.find_all('a', href=re.compile('^(/l/)'))
-	return [re.findall('[0-9]+', tag['href'])[0] for tag in tags]
+	if tags:
+		return [re.findall('[0-9]+', tag['href'])[0] for tag in tags]
+	else:
+		logs.append('No live room currently, category: ' + str(category) + ', page: ' + str(page))
+		return [0]
 
 # get user id from live id
 def getUserId(liveId, logs):
 	url = 'http://www.huajiao.com/l/' + str(liveId)
 	html = requests.get(url)
 	soup = BeautifulSoup(html.text, 'html.parser')
-	link = soup.find('a', href=re.compile('^(/user/)'))['href']
 	try:
+		link = soup.find('a', href=re.compile('^(/user/)'))['href']
 		return re.findall('[0-9]+', link)[0]
 	except:
 		logs.append(getNowTime() + ' live room disappeared, live id: ' + str(liveId))
@@ -138,7 +145,7 @@ def spiderUserRecord():
 	for cnt, category in enumerate(categories):
 		pages = getPageNumbers(category)
 		for page in pages:
-			for liveId in filterLiveIds(category, page):
+			for liveId in filterLiveIds(category, page, logs):
 				userId = getUserId(liveId, logs)
 				if userId:
 					userRecord = getUserRecord(userId, logs)
