@@ -8,6 +8,46 @@ import datetime
 import getpass
 import progressbar
 
+# logs
+class Logs(object):
+	"""docstring for logs"""
+	def __init__(self, commandName):
+		self.content = dict()
+		self.content['Command'] = commandName
+
+	def start(self):
+		self.starttimestamp = time.time()
+		self.content['StartTime'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.starttimestamp))
+		self.content['Record'] = []
+
+	def end(self, logininfo):
+		self.endtimestamp = time.time()
+		self.content['EndTime'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.endtimestamp))
+		if self.starttimestamp:
+			self.content['Duration'] = time.strftime("%H:%M:%S", time.gmtime(self.endtimestamp-self.starttimestamp)) 
+		else:
+			self.content['Duration'] = 0
+		self.content['UserTblInfo'] = getUserTblInfo(logininfo)
+		self.content['LiveTblInfo'] = getLiveTblInfo(logininfo)
+		
+	def present(self):
+		for key in ['Command', 'StartTime', 'EndTime', 'Duration', 'UserTblInfo', 'LiveTblInfo']:
+			print(key)
+			print(self.content[key])
+		print('Record: ')
+		for rcd in self.content['Record']:
+			print(rcd)
+	
+	def output(self, filepath):
+		with open(filepath, 'a') as f:
+			for key in ['Command', 'StartTime', 'EndTime', 'Duration', 'UserTblInfo', 'LiveTblInfo']:
+				f.write(key + ': \n')
+				f.write(self.content[key] + '\n')
+			f.write('Record: \n')
+			for rcd in self.content['Record']:
+				f.write(rcd + '\n')
+			f.write('\n')
+
 # get categories from index
 def getCategories():
 	url = 'http://www.huajiao.com'
@@ -135,12 +175,10 @@ def updateUserRecord(userRecord, logininfo, logs):
 		conn.close()
 
 # scrape user records frame
-def spiderUserRecord():
-	logininfo = getMysqlPass()
+def spiderUserRecord(logininfo, logs):
 	categories = getCategories()
 	bar = progressbar.ProgressBar(total = len(categories))
 	bar.show()
-	logs = []
 	
 	for cnt, category in enumerate(categories):
 		pages = getPageNumbers(category)
@@ -155,12 +193,8 @@ def spiderUserRecord():
 			bar.increase(1 / len(pages))
 			time.sleep(0.2)	
 		bar.update(cnt + 1)
-		time.sleep(1)
+		time.sleep(0.4)
 	bar.present()
-
-	for log in logs:
-		print(log)
-	return logininfo
 
 # get user ids from mysql
 def getUserIdfromDB(logininfo):
@@ -208,12 +242,10 @@ def updateLiveRecord(record, logininfo, logs):
 		conn.close()
 
 # scrape live records frame
-def spiderLiveRecord():
-	logininfo = getMysqlPass()
+def spiderLiveRecord(logininfo, logs):
 	userIds = getUserIdfromDB(logininfo)
 	bar = progressbar.ProgressBar(total = len(userIds))
 	bar.show()
-	logs = []
 
 	for userId in userIds:
 		liverecords = getLiveRecords(userId, logs)
@@ -222,12 +254,9 @@ def spiderLiveRecord():
 				updateLiveRecord(liverecord, logininfo, logs)
 
 		bar.increase()
-		time.sleep(0.1)
+		time.sleep(2)
 	bar.present()
 
-	for log in logs:
-		print(log)
-	return logininfo
 
 # get live table info from mysql
 def getLiveTblInfo(logininfo):
@@ -259,27 +288,40 @@ def getUserTblInfo(logininfo):
 
 def main(argv):
 	usage = 'Usage: python spider.py [Usage|spiderUserRecord|spiderLiveRecord|getLiveTblInfo|getUserTblInfo]'
+	filename = '~/Documents/githubdoc/tiny-web-spider-huajiao/log.text'
 	if len(argv) < 2 or argv[1] == 'Usage':
 		print(usage)
 		exit()
 	elif argv[1] == 'spiderLiveRecord':
-		starttime = time.time()
-		logininfo = spiderLiveRecord()
-		endtime = time.time()
-		duration = time.strftime('%H:%M:%S', time.gmtime(endtime - starttime))
-		print('Run time: ' + duration)
-		print(getLiveTblInfo(logininfo))
+		logininfo = getMysqlPass()
+		spiderlog = Logs(argv[1])
+		spiderlog.start()
+		spiderLiveRecord(logininfo, spiderlog.content['Record'])
+		spiderlog.end(logininfo)
+		spiderlog.present()
+		spiderlog.output(filename)
 	elif argv[1] == 'spiderUserRecord':
-		starttime = time.time()
-		logininfo = spiderUserRecord()
-		endtime = time.time()
-		duration = time.strftime('%H:%M:%S', time.gmtime(endtime - starttime))
-		print('Run time: ' + duration)
-		print(getUserTblInfo(logininfo))
+		logininfo = getMysqlPass()
+		spiderlog = Logs(argv[1])
+		spiderlog.start()
+		spiderUserRecord(logininfo, spiderlog.content['Record'])
+		spiderlog.end(logininfo)
+		spiderlog.present()
+		spiderlog.output(filename)
 	elif argv[1] == 'getLiveTblInfo':
-	    print(getLiveTblInfo(getMysqlPass()))
+		logininfo = getMysqlPass()
+		spiderlog = Logs(argv[1])
+		spiderlog.start()
+		print(getLiveTblInfo(logininfo))
+		spiderlog.end(logininfo)
+		spiderlog.output(filename)
 	elif argv[1] == 'getUserTblInfo':
-		print(getUserTblInfo(getMysqlPass()))
+		logininfo = getMysqlPass()
+		spiderlog = Logs(argv[1])
+		spiderlog.start()
+		print(getUserTblInfo(logininfo))
+		spiderlog.end(logininfo)
+		spiderlog.output(filename)
 	else:
 	    print(usage)
 	    exit()
